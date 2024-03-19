@@ -1,0 +1,37 @@
+vms:
+  -
+    name: "PLAYGROUND"
+    distro: "debian/buster64"
+    primary: false
+    sync_folder: false
+    guest_additions: true
+    ram: 2
+    cpu: 2
+    disk:
+      primary:
+        name: "primary"
+        size: "20GB"
+      extra:
+        - name: 
+          size: "50GB"
+    network:
+      public:
+        - interface: 
+      private:
+        - ip:
+      forward_ports:
+        - guest:
+          host:
+
+#######################################
+##############  Exemplo  ##############
+
+# vms:
+#   - hostname: "PLAYGROUND"        # mandatorio
+#     distro: "debian/buster64"     # default: "debian/buster64"
+#     primary: false                # default: false
+#     sync_folder: false            # default: true
+#     disk: "60GB"                  # default: "20GB"
+#     ram: 2                        # default: 2
+#     cpu: 2                        # default: 2
+#     guest_additions: true         # default: true
