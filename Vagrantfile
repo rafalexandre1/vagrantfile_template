@@ -58,26 +58,36 @@ def build(config, vms)
       server.vm.hostname = vmcfg["hostname"]
       server.vm.synced_folder ".", "/vagrant", disabled: vmcfg["sync_folder"]
 
-      # Configurar disco primario
-      if vmcfg.fetch("disk", {}).fetch("primary")
-        # puts "disk: #{vmcfg["disk"]["primary"]}" # REMOVE: print
-        diskcfg = vmcfg["disk"]["primary"]
-        disksize = diskcfg["size"] ? diskcfg["size"] : "20GB"
-        diskname = diskcfg["name"] ? diskcfg["name"] : "primary"
-        server.vm.disk :disk, size: disksize, name: diskname, primary: true
-      end
+      # Configurar Disco
+      if vmcfg.fetch("disk", nil)
+        disk_cfg = vmcfg["disk"]
+        # puts "disk: #{disk_cfg}" # REMOVE: print
 
-      # Configurar discos extras
-      if vmcfg.fetch("disk", {}).fetch("extra")
-        disks = vmcfg["disk"]["extra"]
-        if not disks.is_a?(Array)
-          disks = [disks]
-        end
-        disks.each_with_index do |diskcfg, index|
-          # puts "extra disk: #{diskcfg}" # REMOVE: print
+        # Configurar disco primario
+        if disk_cfg.fetch("primary", nil)
+          diskcfg = disk_cfg["primary"]
+          diskname = diskcfg["name"] ? diskcfg["name"] : "primary"
           disksize = diskcfg["size"] ? diskcfg["size"] : "20GB"
-          diskname = diskcfg["name"] ? diskcfg["name"] : "extradisk-#{index+1}"
-          server.vm.disk :disk, size: disksize, name: diskname
+          # puts "disk cfg: #{disk_cfg}" # REMOVE: print
+          # puts "diskname: #{diskname}" # REMOVE: print
+          # puts "disksize: #{disksize}" # REMOVE: print
+          server.vm.disk :disk, size: disksize, name: diskname, primary: true
+        end
+
+        # Configurar discos extras
+        if disk_cfg.fetch("extra", nil)
+          extra_disks = disk_cfg["extra"]
+          if not extra_disks.is_a?(Array)
+            extra_disks = [extra_disks]
+          end
+          extra_disks.each_with_index do |diskcfg, index|
+            disksize = diskcfg["size"] ? diskcfg["size"] : "20GB"
+            diskname = diskcfg["name"] ? diskcfg["name"] : "extradisk-#{index+1}"
+            # puts "disk cfg: #{disk_cfg}" # REMOVE: print
+            # puts "diskname: #{diskname}" # REMOVE: print
+            # puts "disksize: #{disksize}" # REMOVE: print
+            server.vm.disk :disk, size: disksize, name: diskname
+          end
         end
       end
 

@@ -12,7 +12,7 @@ vms:
         name: "primary"
         size: "20GB"
       extra:
-        - name: 
+        - name: "bkp"
           size: "50GB"
     network:
       public:
