@@ -1,6 +1,6 @@
 vms:
   -
-    name: "PLAYGROUND"
+    name: PLAYGROUND
     distro: "debian/buster64"
     primary: false
     sync_folder: false
@@ -8,20 +8,51 @@ vms:
     ram: 2
     cpu: 2
     disk:
-      primary:
-        name: "primary"
-        size: "20GB"
-      extra:
-        - name: "bkp"
-          size: "50GB"
+      # primary:
+      #   name: primary
+      #   size: 20GB
+      # extra:
+      #   - name: bkp
+      #     size: 50GB
     network:
       public:
-        - interface: 
+        ## Tipo DHCP
+        type: dhcp
+        # config:
+          # use_dhcp_assigned_default_route: false
+        
+        ## Tipo StaticIP
+        # type: staticip
+        # config:
+        #   interfaces: wlp0s20f3
+        #   ip: "192.168.0.13"
+
+        ## Tipo Bridge
+        # type: bridge
+        # config:
+        #   interfaces: 
+        #     - wlp0s20f3
+
+        ## Tipo Manual
+        # type: manual
       private:
-        - ip:
+        ## Tipo DHCP
+        # - type: dhcp
+
+        ## Tipo StaticIP
+        # - type: staticip
+        #   config:
+        #     ip: "192.168.50.4"
+        
+        ## Tipo Manual
+        # - type: manual
       forward_ports:
-        - guest:
-          host:
+        # - guest: 80
+        #   host: 90
+        #   protocol: udp
+        # - guest: 8090
+        #   host: 9080
+        #   protocol: tcp
 
 #######################################
 ##############  Exemplo  ##############

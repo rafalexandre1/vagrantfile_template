@@ -41,7 +41,7 @@ end
 def build(config, vms)
   # puts "VMS: #{vms}" # REMOVE: print
   ## Loop em configurações de cada VM
-  vms.each do |vm|
+  vms.each_with_index do |vm, vmid|
     ## Validar variaveis definidas
     # puts "VM: #{vm}" # REMOVE: print
     name = vm["name"] ? vm["name"] : nil
@@ -80,13 +80,128 @@ def build(config, vms)
           if not extra_disks.is_a?(Array)
             extra_disks = [extra_disks]
           end
-          extra_disks.each_with_index do |diskcfg, index|
+          extra_disks.each_with_index do |diskcfg, diskid|
             disksize = diskcfg["size"] ? diskcfg["size"] : "20GB"
-            diskname = diskcfg["name"] ? diskcfg["name"] : "extradisk-#{index+1}"
+            diskname = diskcfg["name"] ? diskcfg["name"] : "extradisk-#{diskid}"
             # puts "disk cfg: #{disk_cfg}" # REMOVE: print
             # puts "diskname: #{diskname}" # REMOVE: print
             # puts "disksize: #{disksize}" # REMOVE: print
             server.vm.disk :disk, size: disksize, name: diskname
+          end
+        end
+      end
+
+      # Configurar Network
+      if vmcfg.fetch("network", nil)
+        network_cfg = vmcfg["network"]
+        # puts "network: #{network_cfg}" # REMOVE: print
+
+        # Configurar public network
+        if network_cfg.fetch("public", nil)
+          networkcfg = network_cfg["public"]
+          # puts "networkcfg: #{networkcfg}" # REMOVE: print
+          network_type = networkcfg.fetch("type", nil)
+          network_config = networkcfg["config"] ? networkcfg["config"] : {}
+
+          # Configurar public network como DHCP
+          if network_type.downcase == "dhcp"
+            if network_config.key?("use_dhcp_assigned_default_route")
+              dhcp_route = network_config.fetch("use_dhcp_assigned_default_route")
+              # puts "network dhcp 1: #{network_cfg}" # REMOVE: print
+              server.vm.network "public_network",
+                use_dhcp_assigned_default_route: dhcp_route
+            else
+              # puts "network dhcp 2: #{network_cfg}" # REMOVE: print
+              server.vm.network "public_network"
+            end
+          
+          # Configurar public network como StaticIP
+          elsif network_type.downcase == "staticip"
+            if network_config.key?("ip")
+              ip = network_config["ip"]
+              server.vm.network "public_network", ip: ip
+            else
+              errormsg = "Campo vms[#{vmid}].network.public.config.ip mandatorio"
+              raise KeyError.new(errormsg)
+            end
+          # Configurar public network como Bridge
+          elsif network_type.downcase == "bridge"
+            if network_config.fetch("interfaces", nil)
+              interfaces = network_config["interfaces"]
+              if not interfaces.is_a?(Array)
+                interfaces = [interfaces]
+              end
+              server.vm.network "public_network", bridge: interfaces
+            else
+              errormsg = "Campo vms[#{vmid}].network.public.config.interfaces mandatorio"
+              raise KeyError.new(errormsg)
+            end
+          # Configurar public network Manualmente
+          elsif network_type.downcase == "manual"
+            config.vm.network "public_network", auto_config: false
+          else
+            errormsg = "Campo vms[#{vmid}].network.public.type:#{network_type} incorreto"
+            raise KeyError.new(errormsg)
+          end
+        end
+
+        # Configurar private network
+        if network_cfg.fetch("private", nil)
+          networkcfgs = network_cfg["private"]
+          # puts "networkcfgs: #{networkcfgs}" # REMOVE: print
+          if not networkcfgs.is_a?(Array)
+            networkcfgs = [networkcfgs]
+          end
+          networkcfgs.each_with_index do |networkcfg, privateid|
+            network_type = networkcfg.fetch("type", nil)
+            network_config = networkcfg["config"] ? networkcfg["config"] : {}
+            
+            # Configurar private network como DHCP
+            if network_type.downcase == "dhcp"
+              # puts "network private dhcp: #{networkcfg}" # REMOVE: print
+              server.vm.network "private_network", type: "dhcp"
+            # Configurar public network como StaticIP
+            elsif network_type.downcase == "staticip"
+              # puts "network private staticip: #{networkcfg}" # REMOVE: print
+              if network_config.key?("ip")
+                ip = network_config["ip"]
+                server.vm.network "private_network", ip: ip
+              else
+                errormsg = "Campo vms[#{vmid}].network.private[#{privateid}].config.ip mandatorio"
+                raise KeyError.new(errormsg)
+              end
+            # TODO: CONFIGURAR IPv6
+            # Configurar private network Manualmente
+            elsif network_type.downcase == "manual"
+              # puts "network private manual: #{networkcfg}" # REMOVE: print
+              config.vm.network "private_network", auto_config: false
+            else
+              errormsg = "Campo vms[#{vmid}].network.private[#{privateid}].type:#{network_type} incorreto"
+              raise KeyError.new(errormsg)
+            end
+          end
+        end
+
+        # Configurar redirecionamento de porta
+        if network_cfg.fetch("forward_ports", nil)
+          fwportscfgs = network_cfg["forward_ports"]
+          # puts "fwportscfgs: #{fwportscfgs}" # REMOVE: print
+          if not fwportscfgs.is_a?(Array)
+            fwportscfgs = [fwportscfgs]
+          end
+          fwportscfgs.each_with_index do |fwportscfg, fwportid|
+            if not fwportscfg.fetch("guest", nil)
+              errormsg = "Campo vms[#{vmid}].network.forward_ports[#{fwportid}].guest mandatorio"
+              raise KeyError.new(errormsg)
+            end
+            if not fwportscfg.fetch("host", nil)
+              errormsg = "Campo vms[#{vmid}].network.forward_ports[#{fwportid}].host mandatorio"
+              raise KeyError.new(errormsg)
+            end
+            guest = fwportscfg["guest"]
+            host = fwportscfg["host"]
+            protocol = fwportscfg["protocol"] ? fwportscfg["protocol"]: "tcp"
+            server.vm.network "forwarded_port", guest: guest, host: host, protocol: protocol
           end
         end
       end
