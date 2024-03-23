@@ -1,17 +1,22 @@
 vms:
-  -
-    name: PLAYGROUND
+  - name: PLAYGROUND
     distro: "debian/buster64"
     primary: false
     sync_folder: false
     guest_additions: true
     ram: 2
     cpu: 2
+    synced_folder:
+      # default_disabled: true
+      extra:
+        - type: rsync
+          target: /home/rafael/Developer/Axiros/Projects/ClaroCA/PortalCaptive/
+          dest: /opt
     disk:
-      # primary:
+      primary:
       #   name: primary
       #   size: 20GB
-      # extra:
+      extra:
       #   - name: bkp
       #     size: 50GB
     network:

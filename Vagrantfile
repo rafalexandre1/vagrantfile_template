@@ -56,7 +56,33 @@ def build(config, vms)
     config.vm.define name, primary: vmcfg["primary"] do |server|
       server.vm.box = vmcfg["distro"]
       server.vm.hostname = vmcfg["hostname"]
-      server.vm.synced_folder ".", "/vagrant", disabled: vmcfg["sync_folder"]
+
+      # Configurar Pastas Sincronizadas
+      # Configurar pasta default
+      syncdir_cfg = vmcfg["synced_folder"] ? vmcfg["synced_folder"] : {}
+      syncdir_default = syncdir_cfg.key?("default_disabled") ? syncdir_cfg["default_disabled"] : false
+      server.vm.synced_folder "./data", "/vagrant", disabled: syncdir_default
+      
+      # Configurar pastas extras
+      if syncdir_cfg.fetch("extra", nil)
+        sync_folders = syncdir_cfg["extra"]
+        if not sync_folders.is_a?(Array)
+          sync_folders = [sync_folders]
+        end
+
+        sync_folders.each_with_index do |sync_folder, folderid|
+          type = sync_folder["type"] ? sync_folder["type"] : "rsync"
+          target = sync_folder["target"]
+          dest = sync_folder["dest"]
+
+          # Configurar sync com type rsync
+          disabled = sync_folder["disabled"] ? sync_folder["disabled"] : false
+          if type == "rsync"
+            server.vm.synced_folder target, dest, type: type, 
+              disabled: disabled
+          end
+        end
+      end
 
       # Configurar Disco
       if vmcfg.fetch("disk", nil)
