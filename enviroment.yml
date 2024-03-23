@@ -59,10 +59,10 @@ vms:
         #   protocol: tcp
 
 #######################################
-##############  Exemplo  ##############
+##############  Example  ##############
 
 # vms:
-#   - hostname: "PLAYGROUND"        # mandatorio
+#   - hostname: "PLAYGROUND"        # mandatory
 #     distro: "debian/buster64"     # default: "debian/buster64"
 #     primary: false                # default: false
 #     sync_folder: false            # default: true

@@ -3,11 +3,11 @@
 
 require 'yaml'
 
-# CONFIGURAÇÃO PARA AS VMS
+# GET CONFIGURATION FOR VMS
 ENVIROMENT = YAML.load_file('enviroment.yml')
 VMS = ENVIROMENT['vms']
 
-# Converter configuração para lista de VMs caso necessario
+# Convert configuration to list of VMs if necessary
 if not VMS.is_a?(Array)
   VMS = [VMS]
 end
@@ -98,7 +98,7 @@ def network(vm, config)
     network_type = networkcfg.fetch("type", nil)
     network_config = networkcfg["config"] ? networkcfg["config"] : {}
 
-    # Configurar public network como DHCP
+    # Configure public network as DHCP
     if network_type.downcase == "dhcp"
       if network_config.key?("use_dhcp_assigned_default_route")
         dhcp_route = network_config.fetch("use_dhcp_assigned_default_route")
@@ -110,7 +110,7 @@ def network(vm, config)
         vm.network "public_network"
       end
     
-    # Configurar public network como StaticIP
+    # Configure public network as StaticIP
     elsif network_type.downcase == "staticip"
       if network_config.key?("ip")
         ip = network_config["ip"]
@@ -119,7 +119,7 @@ def network(vm, config)
         errormsg = "Campo vms[#{vmid}].network.public.config.ip mandatorio"
         raise KeyError.new(errormsg)
       end
-    # Configurar public network como Bridge
+    # Configure public network as Bridge
     elsif network_type.downcase == "bridge"
       if network_config.fetch("interfaces", nil)
         interfaces = network_config["interfaces"]
@@ -131,7 +131,7 @@ def network(vm, config)
         errormsg = "Campo vms[#{vmid}].network.public.config.interfaces mandatorio"
         raise KeyError.new(errormsg)
       end
-    # Configurar public network Manualmente
+    # Configure public network manually
     elsif network_type.downcase == "manual"
       config.vm.network "public_network", auto_config: false
     else
@@ -140,7 +140,7 @@ def network(vm, config)
     end
   end
 
-  # Configurar private network
+  # Configure private network
   if config.fetch("private", nil)
     networkcfgs = config["private"]
     # puts "networkcfgs: #{networkcfgs}" # REMOVE: print
@@ -151,11 +151,11 @@ def network(vm, config)
       network_type = networkcfg.fetch("type", nil)
       network_config = networkcfg["config"] ? networkcfg["config"] : {}
       
-      # Configurar private network como DHCP
+      # Configure private network as DHCP
       if network_type.downcase == "dhcp"
         # puts "network private dhcp: #{networkcfg}" # REMOVE: print
         vm.network "private_network", type: "dhcp"
-      # Configurar public network como StaticIP
+      # Configure public network as StaticIP
       elsif network_type.downcase == "staticip"
         # puts "network private staticip: #{networkcfg}" # REMOVE: print
         if network_config.key?("ip")
@@ -165,8 +165,8 @@ def network(vm, config)
           errormsg = "Campo vms[#{vmid}].network.private[#{privateid}].config.ip mandatorio"
           raise KeyError.new(errormsg)
         end
-      # TODO: CONFIGURAR IPv6
-      # Configurar private network Manualmente
+      # TODO: CONFIGURE IPv6
+      # Configure private network manually
       elsif network_type.downcase == "manual"
         # puts "network private manual: #{networkcfg}" # REMOVE: print
         vm.network "private_network", auto_config: false
@@ -177,7 +177,7 @@ def network(vm, config)
     end
   end
 
-  # Configurar redirecionamento de porta
+  # Configure port forwarding
   if config.fetch("forward_ports", nil)
     fwportscfgs = config["forward_ports"]
     # puts "fwportscfgs: #{fwportscfgs}" # REMOVE: print
@@ -202,55 +202,54 @@ def network(vm, config)
 end
 
 
-# Contruir ambiente
+# Build environment
 def build(config, vms)
   # puts "VMS: #{vms}" # REMOVE: print
-  ## Loop em configurações de cada VM
+  # Loop in configurations of each VM
   vms.each_with_index do |vm, vmid|
-    ## Validar variaveis definidas
     # puts "VM: #{vm}" # REMOVE: print
     name = vm["name"] ? vm["name"] : nil
     if not name
       raise KeyError.new("Campo 'name' mandatorio")
     end
 
-    # Definir configurações da vm
-    vmcfg = default_settings(vm)
+    # Define VM Settings
+    vm_cfg = default_settings(vm)
     
-    # Configurar a VM
-    config.vm.define name, primary: vmcfg["primary"] do |server|
-      server.vm.box = vmcfg["distro"]
-      server.vm.hostname = vmcfg["hostname"]
+    # Configure VM
+    config.vm.define name, primary: vm_cfg["primary"] do |server|
+      server.vm.box = vm_cfg["distro"]
+      server.vm.hostname = vm_cfg["hostname"]
 
       # Configure Synced Folders
-      synced_folder_cfg = vmcfg["synced_folder"] ? vmcfg["synced_folder"] : {}
+      synced_folder_cfg = vm_cfg["synced_folder"] ? vm_cfg["synced_folder"] : {}
       synced_folder(server.vm, synced_folder_cfg)
       
       # Configure Disk
-      if vmcfg.fetch("disk", nil)
-        disk_cfg = vmcfg["disk"]
+      if vm_cfg.fetch("disk", nil)
+        disk_cfg = vm_cfg["disk"]
         disk(server.vm, disk_cfg)
       end
       
       # Configure Network
-      if vmcfg.fetch("network", nil)
-        network_cfg = vmcfg["network"]
+      if vm_cfg.fetch("network", nil)
+        network_cfg = vm_cfg["network"]
         network(server.vm, network_cfg)
       end
       
-      # Configurar VirtualBox
+      # Configure VirtualBox
       server.vm.provider "virtualbox" do |vb|
-        vb.name = vmcfg["name"]
-        vb.memory = "%d" % [1024 * vmcfg["ram"]]
-        vb.cpus = vmcfg["cpu"]
-        vb.check_guest_additions = vmcfg["guest_additions"]
+        vb.name = vm_cfg["name"]
+        vb.memory = "%d" % [1024 * vm_cfg["ram"]]
+        vb.cpus = vm_cfg["cpu"]
+        vb.check_guest_additions = vm_cfg["guest_additions"]
       end
     end
   end
 end
 
 
-# All Vagrant configuration
+# Build Virtual Machine
 Vagrant.configure("2") do |config|
   build(config, VMS)
 end
