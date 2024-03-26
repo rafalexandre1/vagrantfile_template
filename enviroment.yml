@@ -2,15 +2,14 @@ vms:
   - name: PLAYGROUND
     distro: "debian/buster64"
     primary: false
-    sync_folder: false
     guest_additions: true
     ram: 2
     cpu: 2
     synced_folder:
-      # default_disabled: true
+      default_disabled: false
       extra:
-          target: /home/rafael/Developer/Axiros/Projects/ClaroCA/PortalCaptive/
-          dest: /opt
+          # target: /home/rafael/Developer/Axiros/Projects/ClaroCA/PortalCaptive/
+          # dest: /opt
     disk:
       primary:
       #   name: primary
@@ -57,7 +56,13 @@ vms:
         # - guest: 8090
         #   host: 9080
         #   protocol: tcp
-
+    provisioning:
+      - type: command
+        inline: echo "Hello World"
+      - type: command
+        inline: echo "Welcome to the Playground"
+      - type: command
+        inline: apt install nmap -y
 #######################################
 ##############  Example  ##############
 

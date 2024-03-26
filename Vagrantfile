@@ -27,7 +27,6 @@ def default_settings(vmdata)
     "hostname"          => vmdata["name"],
     "distro"            => "debian/buster64",
     "primary"           => false,
-    "sync_folder"       => true,
     "guest_additions"   => true,
     "ram"               => 2,
     "cpu"               => 2,
@@ -243,6 +242,28 @@ def build(config, vms)
         vb.memory = "%d" % [1024 * vm_cfg["ram"]]
         vb.cpus = vm_cfg["cpu"]
         vb.check_guest_additions = vm_cfg["guest_additions"]
+      end
+
+      # Provisioning
+      if vm_cfg.fetch("provisioning", nil)
+        provisioning_cfg = vm_cfg["provisioning"]
+        provisionings = convert_to_array(provisioning_cfg)
+
+        provisionings.each_with_index do |provisioning, provisionid|
+          if provisioning["type"] == "command"
+            name = "Exec Line #{provisionid+1}"
+            server.vm.provision name,
+              type: "shell",
+              preserve_order: true,
+              inline: provisioning["inline"]
+          elsif provisioning["type"] == "shellscript"
+            name = "Exec Line#{provisionid+1}"
+            server.vm.provision name,
+              type: "shell",
+              preserve_order: true,
+              path: provisioning["path"]
+          end
+        end
       end
     end
   end
