@@ -8,8 +8,8 @@ vms:
     synced_folder:
       default_disabled: false
       extra:
-          # target: /home/rafael/Developer/Axiros/Projects/ClaroCA/PortalCaptive/
-          # dest: /opt
+          # target: /your/path
+          # dest: /vm/path
     disk:
       primary:
       #   name: primary
