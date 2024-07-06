@@ -214,6 +214,11 @@ def build(config, vms)
 
     # Define VM Settings
     vm_cfg = default_settings(vm)
+
+    # CentOS settings
+    if vm["distro"] == "centos/7"
+      config.vbguest.installer_options = { allow_kernel_upgrade: true }
+    end
     
     # Configure VM
     config.vm.define name, primary: vm_cfg["primary"] do |server|
