@@ -25,7 +25,7 @@ def default_settings(vmdata)
   vm_config = {}
   default_config = {
     "hostname"          => vmdata["name"],
-    "distro"            => "debian/buster64",
+    "distro"            => "debian/bookworm64",
     "primary"           => false,
     "guest_additions"   => true,
     "ram"               => 2,
@@ -88,7 +88,7 @@ def disk(vm, config)
 end
 
 
-def network(vm, config)
+def network(vm, vmid, config)
   # puts "network config: #{config}" # REMOVE: print
   # Configure public network
   if config.fetch("public", nil)
@@ -200,6 +200,64 @@ def network(vm, config)
   end
 end
 
+def provisioning(vm, vmid, config)
+  # Configure Provision
+  provisionings = convert_to_array(config)
+
+  provisionings.each_with_index do |provisioning, provisionid|
+    # puts "provisioning: #{provisioning}" # REMOVE: print
+    # Validate type field
+    if !provisioning.has_key?("type")
+      errormsg = "Campo vms[#{vmid}].provisioning[#{provisionid}].type mandatorio"
+      raise KeyError.new(errormsg)
+    end
+
+    # Configure name field
+    if !provisioning.has_key?("name")
+      provisioning["name"] = "Exec Provision Position: #{provisionid+1}"
+    end
+
+    # Configure run field
+    if !provisioning.has_key?("run")
+      provisioning["run"] = "once"
+    end
+
+    # Provisioning type = shell
+    if provisioning["type"] == "shell"
+      # Execute provision command shell
+      if provisioning.has_key?("inline")
+        vm.provision provisioning["name"],
+          type: provisioning["type"],
+          preserve_order: true,
+          run: provisioning["run"],
+          inline: provisioning["inline"]
+      
+      # Execute provision script shell
+      elsif provisioning.has_key?("path")
+        vm.provision provisioning["name"],
+          type: provisioning["type"],
+          preserve_order: true,
+          run: provisioning["run"],
+          inline: provisioning["path"]
+      else
+        raise "O Hash deve conter a chave 'inline' ou 'path'"
+      end
+    
+    # Provisioning type = file
+    elsif provisioning["type"] == "file"
+      # Validate file fields
+      if !provisioning.has_key?("source") && !provisioning.has_key?("destination")
+        raise "O Hash deve conter a chave 'source' ou 'destination'"
+      end
+      vm.provision provisioning["name"],
+        type: provisioning["type"],
+        preserve_order: true,
+        run: provisioning["run"],
+        source: provisioning["source"],
+        destination: provisioning["destination"]
+    end
+  end
+end
 
 # Build environment
 def build(config, vms)
@@ -238,7 +296,7 @@ def build(config, vms)
       # Configure Network
       if vm_cfg.fetch("network", nil)
         network_cfg = vm_cfg["network"]
-        network(server.vm, network_cfg)
+        network(server.vm, vmid, network_cfg)
       end
       
       # Configure VirtualBox
@@ -252,23 +310,7 @@ def build(config, vms)
       # Provisioning
       if vm_cfg.fetch("provisioning", nil)
         provisioning_cfg = vm_cfg["provisioning"]
-        provisionings = convert_to_array(provisioning_cfg)
-
-        provisionings.each_with_index do |provisioning, provisionid|
-          if provisioning["type"] == "command"
-            name = "Exec Line #{provisionid+1}"
-            server.vm.provision name,
-              type: "shell",
-              preserve_order: true,
-              inline: provisioning["inline"]
-          elsif provisioning["type"] == "shellscript"
-            name = "Exec Line#{provisionid+1}"
-            server.vm.provision name,
-              type: "shell",
-              preserve_order: true,
-              path: provisioning["path"]
-          end
-        end
+        provisioning(server.vm, vmid, provisioning_cfg)
       end
     end
   end
