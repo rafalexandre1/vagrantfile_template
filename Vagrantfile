@@ -24,6 +24,7 @@ end
 def default_settings(vmdata)
   vm_config = {}
   default_config = {
+    "provider"          => "virtualbox",
     "hostname"          => vmdata["name"],
     "distro"            => "debian/bookworm64",
     "primary"           => false,
@@ -200,6 +201,22 @@ def network(vm, vmid, config)
   end
 end
 
+
+def virtualbox(vm, config)
+  vm.provider "virtualbox" do |vb|
+    vb.name = config["name"]
+    vb.memory = "%d" % [1024 * config["ram"]]
+    vb.cpus = config["cpu"]
+    vb.check_guest_additions = config["guest_additions"]
+    # TODO: Configurar grupos
+    group = config["group"] ? config["group"] : nil
+    if group
+      vb.customize ["modifyvm", :id, "--groups", config["group"]]
+    end
+  end
+end
+
+
 def provisioning(vm, vmid, config)
   # Configure Provision
   provisionings = convert_to_array(config)
@@ -259,6 +276,7 @@ def provisioning(vm, vmid, config)
   end
 end
 
+
 # Build environment
 def build(config, vms)
   # puts "VMS: #{vms}" # REMOVE: print
@@ -274,7 +292,7 @@ def build(config, vms)
     vm_cfg = default_settings(vm)
 
     # CentOS settings
-    if vm["distro"] == "centos/7"
+    if vm["distro"].include?("centos")
       config.vbguest.installer_options = { allow_kernel_upgrade: true }
     end
     
@@ -300,11 +318,8 @@ def build(config, vms)
       end
       
       # Configure VirtualBox
-      server.vm.provider "virtualbox" do |vb|
-        vb.name = vm_cfg["name"]
-        vb.memory = "%d" % [1024 * vm_cfg["ram"]]
-        vb.cpus = vm_cfg["cpu"]
-        vb.check_guest_additions = vm_cfg["guest_additions"]
+      if vm["provider"] == "virtualbox"
+        virtualbox(server.vm, vm_cfg)
       end
 
       # Provisioning
